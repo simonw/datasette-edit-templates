@@ -5,7 +5,9 @@
 [![Tests](https://github.com/simonw/datasette-edit-templates/workflows/Test/badge.svg)](https://github.com/simonw/datasette-edit-templates/actions?query=workflow%3ATest)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/simonw/datasette-edit-templates/blob/main/LICENSE)
 
-Plugin allowing Datasette templates to be edited within Datasette
+Plugin allowing Datasette templates to be edited within Datasette.
+
+**THIS PLUGIN IS CURRENTLY BROKEN - see [#1](https://github.com/simonw/datasette-edit-templates/issues/1) for details.**
 
 ## Installation
 
