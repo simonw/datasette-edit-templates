@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Edit template: {{ template }}{% endblock %}
+
+{% block extra_head %}
+{% include "_codemirror.html" %}
+<style>
+.CodeMirror {
+  border: 1px solid #eee;
+  height: 70vh;
+}
+/* Fix for weirdness in _codemirror.html */
+.CodeMirror-scroll { max-height: none; }
+</style>
+{% endblock %}
+
+{% block nav %}
+    <p class="crumbs">
+        <a href="{{ urls.instance() }}">Home</a> /
+        <a href="{{ urls.path("/-/edit-templates") }}">Edit templates</a>
+    </p>
+    {{ super() }}
+{% endblock %}
+
+{% block content %}
+
+<h1>Edit template: {{ template }}</h1>
+
+{% if not from_db %}Original disk version:{% endif %}
+
+<form class="sql" action="{{ path }}" method="post">
+    <p><textarea name="body">{{ body }}</textarea></p>
+    <p>
+        <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
+        <input type="submit" value="Save changes">
+    </p>
+</form>
+
+<script src="{{ urls.static_plugins("datasette_edit_templates", "jinja2.js") }}"></script>
+<script>
+var htmlInput = document.querySelector('textarea');
+var editor = CodeMirror.fromTextArea(htmlInput, {
+    lineNumbers: true,
+    mode: {name: "jinja2", htmlMode: true},
+    lineWrapping: true
+});
+</script>
+{% endblock %}
