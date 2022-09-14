@@ -1,6 +1,8 @@
 from datasette import hookimpl
+from jinja2 import FunctionLoader
 from datasette.utils.asgi import Response
 import datetime
+import inspect
 
 TABLE = "_templates_"
 CREATE_TABLE = [
@@ -19,7 +21,9 @@ CREATE_TABLE = [
         table=TABLE
     ),
 ]
-DEFAULT_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(TABLE)
+DEFAULT_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
+    TABLE
+)
 WRITE_SQL = "INSERT INTO {} (template, created, body) VALUES (:template, :created, :body)".format(
     TABLE
 )
@@ -27,12 +31,19 @@ WRITE_SQL = "INSERT INTO {} (template, created, body) VALUES (:template, :create
 
 @hookimpl
 def startup(datasette):
+    datasette._edit_templates = {}
+
     async def inner():
         db = get_database(datasette)
         # Does the table exist?
         if not await db.table_exists(TABLE):
             for sql in CREATE_TABLE:
                 await db.execute_write(sql, block=True)
+        else:
+            # Load all templates from that table
+            rows = await db.execute("select template, body FROM {}".format(TABLE))
+            for name, content in rows:
+                datasette._edit_templates[name] = content
 
     return inner
 
@@ -53,20 +64,24 @@ def get_database(datasette):
     return datasette.get_database(plugin_config.get("database"))
 
 
-@hookimpl
-def load_template(template, datasette):
-    async def inner():
-        db = get_database(datasette)
-        # Does it have a _templates_ table?
-        if not await db.table_exists("_templates_"):
-            return None
-        # Does this template exist?
-        results = await db.execute(DEFAULT_SQL, {"template": template})
-        row = results.first()
-        if row:
-            return row[0]
+class MyFunctionLoader(FunctionLoader):
+    def list_templates(self):
+        return []
 
-    return inner
+
+@hookimpl
+def prepare_jinja2_environment(env):
+    # TODO: This should ideally take datasette, but that's not an argument yet
+    datasette = inspect.currentframe().f_back.f_back.f_back.f_back.f_locals["self"]
+
+    def load_func(path):
+        try:
+            code = datasette._edit_templates[path]
+            return code, path, lambda: True
+        except KeyError:
+            return None
+
+    env.loader.loaders.insert(0, MyFunctionLoader(load_func))
 
 
 async def edit_templates_index(request, datasette):
@@ -101,6 +116,10 @@ async def edit_template(request, datasette):
             block=True,
         )
         datasette.add_message(request, "Template changes saved")
+        # Update the in-memory cache too
+        datasette._edit_templates[template] = body
+        # Clear the Jinja template cache so it sees the change
+        datasette.jinja_env.cache.clear()
         return Response.redirect(request.path)
 
     from_db = False
@@ -108,8 +127,6 @@ async def edit_template(request, datasette):
     if row is None:
         # Load it from disk instead
         template_obj = datasette.jinja_env.get_template(template)
-        import pdb; pdb.set_trace()
-        # Load it from disk
         body = open(template_obj.filename).read()
         from_db = True
     else:
