@@ -1,8 +1,9 @@
 name: Test
 
-on:
-  push:
-  workflow_dispatch:
+on: [push, pull_request]
+
+permissions:
+  contents: read
 
 jobs:
   test:
@@ -13,17 +14,20 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      if: hashFiles('setup.py')
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-        cache: pip
-        cache-dependency-path: '**/setup.py'
+    - uses: actions/cache@v3
+      name: Configure pip caching
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/setup.py') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - name: Install dependencies
-      if: hashFiles('setup.py')
       run: |
         pip install -e '.[test]'
     - name: Run tests
-      if: hashFiles('setup.py')
       run: |
         pytest
+
