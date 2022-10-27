@@ -24,8 +24,7 @@ async def ds(db_path):
 
 
 @pytest.mark.asyncio
-async def test_loads_templates_on_startup(ds, db):
-    assert ds._edit_templates == {}
+async def test_loads_templates_on_startup(db_path, db):
     db["_templates_"].insert(
         {
             "template": "_footer.html",
@@ -33,6 +32,7 @@ async def test_loads_templates_on_startup(ds, db):
             "body": "Hello world",
         }
     )
+    ds = Datasette([db_path])
     await ds.invoke_startup()
     assert ds._edit_templates == {"_footer.html": "Hello world"}
 

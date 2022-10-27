@@ -70,10 +70,7 @@ class MyFunctionLoader(FunctionLoader):
 
 
 @hookimpl
-def prepare_jinja2_environment(env):
-    # TODO: This should ideally take datasette, but that's not an argument yet
-    datasette = inspect.currentframe().f_back.f_back.f_back.f_back.f_locals["self"]
-
+def prepare_jinja2_environment(env, datasette):
     def load_func(path):
         try:
             code = datasette._edit_templates[path]

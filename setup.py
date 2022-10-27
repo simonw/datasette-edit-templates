@@ -28,7 +28,7 @@ setup(
     version=VERSION,
     packages=["datasette_edit_templates"],
     entry_points={"datasette": ["edit_templates = datasette_edit_templates"]},
-    install_requires=["datasette>=0.51a1"],
+    install_requires=["datasette>=0.63"],
     package_data={
         "datasette_edit_templates": [
             "static/*.js",
@@ -37,5 +37,5 @@ setup(
     },
     extras_require={"test": ["pytest", "pytest-asyncio", "sqlite-utils"]},
     tests_require=["datasette-edit-templates[test]"],
-    python_requires=">=3.6",
+    python_requires=">=3.7",
 )
