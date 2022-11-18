@@ -70,3 +70,11 @@ async def test_edit_template(ds, db):
     assert response2.headers["Location"] == "/-/edit-templates/_footer.html"
     response3 = await ds.client.get("/")
     assert "New footer" in response3.text
+
+
+@pytest.mark.asyncio
+async def test_edit_template_permission_denied(ds):
+    for path in ("/-/edit-templates/_footer.html", "/-/edit-templates"):
+        response = await ds.client.get(path)
+        assert response.status_code == 403
+        assert "Permission denied" in response.text

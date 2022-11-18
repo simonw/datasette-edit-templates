@@ -15,13 +15,15 @@ Install this plugin in the same environment as Datasette.
 
 ## Usage
 
-Once installed, sign in as the root user using `datasette mydb.db --root`.
-
 On startup. a `_templates_` table will be created in the database you are running Datasette against.
 
 Use the app menu to navigate to the `/-/edit-templates` page, and edit templates there.
 
 Changes should become visible instantly, and will be persisted to your database.
+
+The interface is only available to users with the `edit-templates` permission.
+
+The `root` user is granted this permission by default. You can sign in as the root user using `datasette mydb.db --root`.
 
 ## Development
 

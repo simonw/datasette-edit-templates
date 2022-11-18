@@ -1,6 +1,6 @@
 from datasette import hookimpl
 from jinja2 import FunctionLoader
-from datasette.utils.asgi import Response
+from datasette.utils.asgi import Response, Forbidden
 import datetime
 import inspect
 
@@ -49,14 +49,26 @@ def startup(datasette):
 
 
 @hookimpl
+def permission_allowed(actor, action):
+    if action == "edit-templates" and actor and actor.get("id") == "root":
+        return True
+
+
+@hookimpl
 def menu_links(datasette, actor):
-    if actor and actor.get("id") == "root":
+    async def inner():
+        if not await datasette.permission_allowed(
+            actor, "edit-templates", default=False
+        ):
+            return
         return [
             {
                 "href": datasette.urls.path("/-/edit-templates"),
                 "label": "Edit templates",
             },
         ]
+
+    return inner
 
 
 def get_database(datasette):
@@ -82,6 +94,10 @@ def prepare_jinja2_environment(env, datasette):
 
 
 async def edit_templates_index(request, datasette):
+    if not await datasette.permission_allowed(
+        request.actor, "edit-templates", default=False
+    ):
+        raise Forbidden("Permission denied for edit-templates")
     # Offer edit options for all disk templates
     return Response.html(
         await datasette.render_template(
@@ -98,6 +114,10 @@ async def edit_templates_index(request, datasette):
 
 
 async def edit_template(request, datasette):
+    if not await datasette.permission_allowed(
+        request.actor, "edit-templates", default=False
+    ):
+        raise Forbidden("Permission denied for edit-templates")
     template = request.url_vars["template"]
     db = get_database(datasette)
     if request.method == "POST":
