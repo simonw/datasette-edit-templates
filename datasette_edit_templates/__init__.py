@@ -28,12 +28,19 @@ having created = max(created)
 """.format(
     table=TABLE
 )
-GET_TEMPLATE_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
+GET_TEMPLATE_SQL = "SELECT id, body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
     TABLE
 )
 WRITE_TEMPLATE_SQL = "INSERT INTO {} (template, created, body) VALUES (:template, :created, :body)".format(
     TABLE
 )
+
+
+def pretty_datetime(d):
+    if d:
+        return datetime.datetime.fromisoformat(d).strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        return ""
 
 
 @hookimpl
@@ -146,11 +153,7 @@ async def edit_templates_index(request, datasette):
             "edit_templates_index.html",
             {
                 "templates": templates,
-                "pretty_last_updated": lambda d: datetime.datetime.fromisoformat(
-                    d
-                ).strftime("%Y-%m-%d %H:%M:%S")
-                if d
-                else "",
+                "pretty_datetime": pretty_datetime,
             },
         )
     )
@@ -184,6 +187,17 @@ async def edit_template(request, datasette):
 
     create_from_scratch = False
     row = (await db.execute(GET_TEMPLATE_SQL, {"template": template})).first()
+    requested_revision = request.args.get("revision")
+    revision = None
+    if requested_revision:
+        row = (
+            await db.execute(
+                "select id, created, body from {} where id = :id".format(TABLE),
+                {"id": requested_revision},
+            )
+        ).first()
+        revision = dict(row)
+    revisions = []
     if row is None:
         from_db = False
         # Load it from disk instead
@@ -195,16 +209,31 @@ async def edit_template(request, datasette):
             create_from_scratch = True
     else:
         from_db = True
-        body = row[0]
+        body = row["body"]
+        # And load revisions
+        revisions = [
+            dict(revision)
+            for revision in (
+                await db.execute(
+                    "select id, created from {} where template = :template and id != :id order by created desc".format(
+                        TABLE
+                    ),
+                    {"template": template, "id": row["id"]},
+                )
+            ).rows
+        ]
     return Response.html(
         await datasette.render_template(
             "edit_template.html",
             {
                 "body": body,
                 "template": template,
+                "revision": revision,
                 "path": request.path,
                 "from_db": from_db,
                 "create_from_scratch": create_from_scratch,
+                "revisions": revisions,
+                "pretty_datetime": pretty_datetime,
             },
             request=request,
         )

@@ -7,7 +7,7 @@
 <style>
 .CodeMirror {
   border: 1px solid #eee;
-  height: 70vh;
+  height: {% if revision %}{{ revision.body.split("\n").__len__() }} {% else %}35{% endif %}vh;
 }
 /* Fix for weirdness in _codemirror.html */
 .CodeMirror-scroll { max-height: none; }
@@ -25,6 +25,10 @@
 
 <h1>Edit template: {{ template }}</h1>
 
+{% if revision %}
+    <p>Revision from {{ revision.created }}</p>
+{% endif %}
+
 {% if not from_db and not create_from_scratch %}<p>Original disk version:</p>{% endif %}
 
 {% if create_from_scratch %}<p>Create a new template</p>{% endif %}
@@ -33,9 +37,21 @@
     <p><textarea name="body">{{ body }}</textarea></p>
     <p>
         <input type="hidden" name="csrftoken" value="{{ csrftoken() }}">
-        <input type="submit" value="Save changes">
+        <input type="submit" value="{% if revision %}Revert to this revision{% else %}Save changes{% endif %}">
     </p>
 </form>
+
+{% if revisions %}
+<h2>Previous revisions</h2>
+<ul>
+    {% for revision in revisions %}
+        <li>
+            <a href="{{ urls.path("/-/edit-templates/" + template + "?revision=") }}{{ revision.id }}">{{ pretty_datetime(revision.created) }}</a>
+        </li>
+    {% endfor %}
+</ul>
+{% endif %}
+
 
 <script src="{{ urls.static_plugins("datasette_edit_templates", "jinja2.js") }}"></script>
 <script>
@@ -43,7 +59,8 @@ var htmlInput = document.querySelector('textarea');
 var editor = CodeMirror.fromTextArea(htmlInput, {
     lineNumbers: true,
     mode: {name: "jinja2", htmlMode: true},
-    lineWrapping: true
+    lineWrapping: true{% if revision %},
+    readOnly: true{% endif %}
 });
 </script>
 {% endblock %}

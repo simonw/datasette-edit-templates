@@ -17,7 +17,7 @@
         {% for template in templates %}
             <tr>
                 <td><a href="{{ urls.path("/-/edit-templates/" + template.name) }}">{{ template.name }}</a></td>
-                <td>{{ pretty_last_updated(template.last_updated) }}</td>
+                <td>{{ pretty_datetime(template.last_updated) }}</td>
                 <td>{{ template.revisions }}</td>
             </tr>
         {% endfor %}
