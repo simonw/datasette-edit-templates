@@ -146,20 +146,6 @@ async def edit_templates_index(request, datasette):
             "edit_templates_index.html",
             {
                 "templates": templates,
-                "recents": [
-                    dict(row)
-                    for row in await db.execute(
-                        """
-                        select
-                          template as name,
-                          max(created) as created
-                        from _templates_
-                        group by template
-                        order by created desc
-                        limit 10
-                        """
-                    )
-                ],
                 "pretty_last_updated": lambda d: datetime.datetime.fromisoformat(
                     d
                 ).strftime("%Y-%m-%d %H:%M:%S")
