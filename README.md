@@ -10,9 +10,9 @@ Plugin allowing Datasette templates to be edited within Datasette.
 ## Installation
 
 Install this plugin in the same environment as Datasette.
-
-    $ datasette install datasette-edit-templates
-
+```bash
+datasette install datasette-edit-templates
+```
 ## Usage
 
 On startup. a `_templates_` table will be created in the database you are running Datasette against.
@@ -25,22 +25,37 @@ The interface is only available to users with the `edit-templates` permission.
 
 The `root` user is granted this permission by default. You can sign in as the root user using `datasette mydb.db --root`.
 
+## Configuration
+
+To put the `_templates_` table in a specific database, set the `datasette-edit-templates: database` plugin configuration option:
+
+```json
+{
+    "plugins": {
+        "datasette-edit-templates": {
+            "database": "_internal"
+        }
+    }
+}
+```
+
 ## Development
 
 To set up this plugin locally, first checkout the code. Then create a new virtual environment:
-
-    cd datasette-edit-templates
-    python3 -mvenv venv
-    source venv/bin/activate
-
+```bash
+cd datasette-edit-templates
+python3 -mvenv venv
+source venv/bin/activate
+```
 Or if you are using `pipenv`:
-
-    pipenv shell
-
+```bash
+pipenv shell
+```
 Now install the dependencies and tests:
-
-    pip install -e '.[test]'
-
+```bash
+pip install -e '.[test]'
+```
 To run the tests:
-
-    pytest
+```bash
+pytest
+```
