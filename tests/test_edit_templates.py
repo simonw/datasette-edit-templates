@@ -88,6 +88,35 @@ async def test_edit_template(ds, db):
 
 
 @pytest.mark.asyncio
+async def test_create_new_template(ds, db):
+    assert ds._edit_templates == {}
+    actor = ds.sign({"a": {"id": "root"}}, "actor")
+    response1 = await ds.client.get("/-/edit-templates", cookies={"ds_actor": actor})
+    assert ' action="/-/edit-templates/" method="get">' in response1.text
+    assert (await ds.client.get("/foo")).status_code == 404
+    response2 = await ds.client.get(
+        "/-/edit-templates?template=pages/foo.html", cookies={"ds_actor": actor}
+    )
+    assert response2.status_code == 302
+    assert response2.headers["Location"] == "/-/edit-templates/pages/foo.html"
+    # Get CSRF cookie
+    csrftoken = (
+        await ds.client.get(
+            "/-/edit-templates/pages/foo.html", cookies={"ds_actor": actor}
+        )
+    ).cookies["ds_csrftoken"]
+    response2 = await ds.client.post(
+        "/-/edit-templates/pages/foo.html",
+        cookies={"ds_actor": actor, "ds_csrftoken": csrftoken},
+        data={"body": "Brand new page", "csrftoken": csrftoken},
+    )
+    assert ds._edit_templates == {"pages/foo.html": "Brand new page"}
+    response3 = await ds.client.get("/foo")
+    assert response3.status_code == 200
+    assert response3.text == "Brand new page"
+
+
+@pytest.mark.asyncio
 async def test_edit_template_permission_denied(ds):
     for path in ("/-/edit-templates/_footer.html", "/-/edit-templates"):
         response = await ds.client.get(path)
