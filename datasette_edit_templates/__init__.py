@@ -1,5 +1,5 @@
 from datasette import hookimpl
-from jinja2 import FunctionLoader
+from jinja2 import FunctionLoader, TemplateNotFound
 from datasette.utils.asgi import Response, Forbidden
 import datetime
 
@@ -20,6 +20,14 @@ CREATE_TABLE_SQLS = [
         table=TABLE
     ),
 ]
+LOAD_TEMPLATE_SQL = """
+select template, body
+from {table}
+group by template
+having created = max(created)
+""".format(
+    table=TABLE
+)
 GET_TEMPLATE_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
     TABLE
 )
@@ -40,7 +48,7 @@ def startup(datasette):
                 await db.execute_write(sql, block=True)
         else:
             # Load all templates from that table
-            rows = await db.execute("select template, body FROM {}".format(TABLE))
+            rows = await db.execute(LOAD_TEMPLATE_SQL)
             for name, content in rows:
                 datasette._edit_templates[name] = content
 
@@ -97,16 +105,52 @@ async def edit_templates_index(request, datasette):
         request.actor, "edit-templates", default=False
     ):
         raise Forbidden("Permission denied for edit-templates")
+    template_name = request.args.get("template")
+    if template_name:
+        return Response.redirect(
+            datasette.urls.path("/-/edit-templates/{}".format(template_name))
+        )
+    db = get_database(datasette)
+
+    # List both templates from DB and default unedited templates
+    templates = [
+        dict(row)
+        for row in await db.execute(
+            """
+            select template as name, max(created) as last_updated, count(*) as revisions
+            from {} group by template order by created desc
+            """.format(
+                TABLE
+            )
+        )
+    ]
+    by_name = {t["name"]: t for t in templates}
+
+    for template in datasette.jinja_env.list_templates():
+        if template.startswith("default:"):
+            continue
+        if template in by_name:
+            pass
+        else:
+            templates.append(
+                {
+                    "name": template,
+                    "last_edited": None,
+                    "revisions": "",
+                }
+            )
+
     # Offer edit options for all disk templates
     return Response.html(
         await datasette.render_template(
             "edit_templates_index.html",
             {
-                "templates": [
-                    {"name": t, "default": True}
-                    for t in datasette.jinja_env.list_templates()
-                    if not t.startswith("default:")
-                ]
+                "templates": templates,
+                "pretty_last_updated": lambda d: datetime.datetime.fromisoformat(
+                    d
+                ).strftime("%Y-%m-%d %H:%M:%S")
+                if d
+                else "",
             },
         )
     )
@@ -138,14 +182,19 @@ async def edit_template(request, datasette):
         datasette.jinja_env.cache.clear()
         return Response.redirect(request.path)
 
-    from_db = False
+    create_from_scratch = False
     row = (await db.execute(GET_TEMPLATE_SQL, {"template": template})).first()
     if row is None:
+        from_db = False
         # Load it from disk instead
-        template_obj = datasette.jinja_env.get_template(template)
-        body = open(template_obj.filename).read()
-        from_db = True
+        try:
+            template_obj = datasette.jinja_env.get_template(template)
+            body = open(template_obj.filename).read()
+        except TemplateNotFound:
+            body = ""
+            create_from_scratch = True
     else:
+        from_db = True
         body = row[0]
     return Response.html(
         await datasette.render_template(
@@ -155,6 +204,7 @@ async def edit_template(request, datasette):
                 "template": template,
                 "path": request.path,
                 "from_db": from_db,
+                "create_from_scratch": create_from_scratch,
             },
             request=request,
         )
@@ -165,5 +215,5 @@ async def edit_template(request, datasette):
 def register_routes():
     return [
         (r"^/-/edit-templates$", edit_templates_index),
-        (r"^/-/edit-templates/(?P<template>.*)$", edit_template),
+        (r"^/-/edit-templates/(?P<template>.+)$", edit_template),
     ]
