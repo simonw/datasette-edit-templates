@@ -5,11 +5,24 @@
 {% block content %}
 <h1>Edit templates</h1>
 
-<ul>
-{% for template in templates %}
-    <li><a href="{{ urls.path("/-/edit-templates/" + template.name) }}">{{ template.name }}</a>{% if template.default %} (default){% endif %}</li>
-{% endfor %}
-</ul>
+<table>
+    <thead>
+        <tr>
+            <th>Template</th>
+            <th>Last updated</th>
+            <th>Number of revisions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for template in templates %}
+            <tr>
+                <td><a href="{{ urls.path("/-/edit-templates/" + template.name) }}">{{ template.name }}</a></td>
+                <td>{{ pretty_last_updated(template.last_updated) }}</td>
+                <td>{{ template.revisions }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
 <form action="{{ urls.path("/-/edit-templates/") }}" method="get">
     <h2>Create a new template</h2>

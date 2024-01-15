@@ -112,22 +112,59 @@ async def edit_templates_index(request, datasette):
         )
     db = get_database(datasette)
 
+    # List both templates from DB and default unedited templates
+    templates = [
+        dict(row)
+        for row in await db.execute(
+            """
+            select template as name, max(created) as last_updated, count(*) as revisions
+            from {} group by template order by created desc
+            """.format(
+                TABLE
+            )
+        )
+    ]
+    by_name = {t["name"]: t for t in templates}
+
+    for template in datasette.jinja_env.list_templates():
+        if template.startswith("default:"):
+            continue
+        if template in by_name:
+            pass
+        else:
+            templates.append(
+                {
+                    "name": template,
+                    "last_edited": None,
+                    "revisions": "",
+                }
+            )
+
     # Offer edit options for all disk templates
     return Response.html(
         await datasette.render_template(
             "edit_templates_index.html",
             {
-                "templates": [
-                    {"name": t, "default": True}
-                    for t in datasette.jinja_env.list_templates()
-                    if not t.startswith("default:")
-                ],
+                "templates": templates,
                 "recents": [
                     dict(row)
                     for row in await db.execute(
-                        "select template as name, max(created) as created from _templates_ group by template order by created desc limit 10"
+                        """
+                        select
+                          template as name,
+                          max(created) as created
+                        from _templates_
+                        group by template
+                        order by created desc
+                        limit 10
+                        """
                     )
                 ],
+                "pretty_last_updated": lambda d: datetime.datetime.fromisoformat(
+                    d
+                ).strftime("%Y-%m-%d %H:%M:%S")
+                if d
+                else "",
             },
         )
     )
