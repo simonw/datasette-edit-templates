@@ -2,10 +2,9 @@ from datasette import hookimpl
 from jinja2 import FunctionLoader
 from datasette.utils.asgi import Response, Forbidden
 import datetime
-import inspect
 
 TABLE = "_templates_"
-CREATE_TABLE = [
+CREATE_TABLE_SQLS = [
     """
     CREATE TABLE {table} (
         [id] INTEGER PRIMARY KEY,
@@ -21,10 +20,10 @@ CREATE_TABLE = [
         table=TABLE
     ),
 ]
-DEFAULT_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
+GET_TEMPLATE_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
     TABLE
 )
-WRITE_SQL = "INSERT INTO {} (template, created, body) VALUES (:template, :created, :body)".format(
+WRITE_TEMPLATE_SQL = "INSERT INTO {} (template, created, body) VALUES (:template, :created, :body)".format(
     TABLE
 )
 
@@ -37,7 +36,7 @@ def startup(datasette):
         db = get_database(datasette)
         # Does the table exist?
         if not await db.table_exists(TABLE):
-            for sql in CREATE_TABLE:
+            for sql in CREATE_TABLE_SQLS:
                 await db.execute_write(sql, block=True)
         else:
             # Load all templates from that table
@@ -124,7 +123,7 @@ async def edit_template(request, datasette):
         post = await request.post_vars()
         body = post["body"]
         await db.execute_write(
-            WRITE_SQL,
+            WRITE_TEMPLATE_SQL,
             {
                 "template": template,
                 "created": datetime.datetime.utcnow().isoformat(),
@@ -140,7 +139,7 @@ async def edit_template(request, datasette):
         return Response.redirect(request.path)
 
     from_db = False
-    row = (await db.execute(DEFAULT_SQL, {"template": template})).first()
+    row = (await db.execute(GET_TEMPLATE_SQL, {"template": template})).first()
     if row is None:
         # Load it from disk instead
         template_obj = datasette.jinja_env.get_template(template)
