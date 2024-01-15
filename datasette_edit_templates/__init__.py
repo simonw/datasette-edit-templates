@@ -20,6 +20,14 @@ CREATE_TABLE_SQLS = [
         table=TABLE
     ),
 ]
+LOAD_TEMPLATE_SQL = """
+select template, body
+from {table}
+group by template
+having created = max(created)
+""".format(
+    table=TABLE
+)
 GET_TEMPLATE_SQL = "SELECT body FROM {} WHERE template = :template ORDER BY created DESC LIMIT 1".format(
     TABLE
 )
@@ -40,7 +48,7 @@ def startup(datasette):
                 await db.execute_write(sql, block=True)
         else:
             # Load all templates from that table
-            rows = await db.execute("select template, body FROM {}".format(TABLE))
+            rows = await db.execute(LOAD_TEMPLATE_SQL)
             for name, content in rows:
                 datasette._edit_templates[name] = content
 
@@ -145,7 +153,7 @@ async def edit_template(request, datasette):
         # Load it from disk instead
         try:
             template_obj = datasette.jinja_env.get_template(template)
-            body = open(template_obj.filename).read()    
+            body = open(template_obj.filename).read()
         except TemplateNotFound:
             body = ""
             create_from_scratch = True

@@ -25,16 +25,31 @@ async def ds(db_path):
 
 @pytest.mark.asyncio
 async def test_loads_templates_on_startup(db_path, db):
-    db["_templates_"].insert(
-        {
-            "template": "_footer.html",
-            "created": "2020-01-01T00:00:00",
-            "body": "Hello world",
-        }
+    db["_templates_"].insert_all(
+        [
+            # Duplicated these with same created just to
+            # make sure having exact same timestamp doesn't
+            # crash the server on startup
+            {
+                "template": "_footer.html",
+                "created": "2023-01-01T00:00:00",
+                "body": "Hello world v2",
+            },
+            {
+                "template": "_footer.html",
+                "created": "2023-01-01T00:00:00",
+                "body": "Hello world v2",
+            },
+            {
+                "template": "_footer.html",
+                "created": "2022-01-01T00:00:00",
+                "body": "Hello world v1",
+            },
+        ]
     )
     ds = Datasette([db_path])
     await ds.invoke_startup()
-    assert ds._edit_templates == {"_footer.html": "Hello world"}
+    assert ds._edit_templates == {"_footer.html": "Hello world v2"}
 
 
 @pytest.mark.asyncio
