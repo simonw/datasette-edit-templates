@@ -105,6 +105,13 @@ async def edit_templates_index(request, datasette):
         request.actor, "edit-templates", default=False
     ):
         raise Forbidden("Permission denied for edit-templates")
+    template_name = request.args.get("template")
+    if template_name:
+        return Response.redirect(
+            datasette.urls.path("/-/edit-templates/{}".format(template_name))
+        )
+    db = get_database(datasette)
+
     # Offer edit options for all disk templates
     return Response.html(
         await datasette.render_template(
@@ -114,7 +121,13 @@ async def edit_templates_index(request, datasette):
                     {"name": t, "default": True}
                     for t in datasette.jinja_env.list_templates()
                     if not t.startswith("default:")
-                ]
+                ],
+                "recents": [
+                    dict(row)
+                    for row in await db.execute(
+                        "select template as name, max(created) as created from _templates_ group by template order by created desc limit 10"
+                    )
+                ],
             },
         )
     )
@@ -179,5 +192,5 @@ async def edit_template(request, datasette):
 def register_routes():
     return [
         (r"^/-/edit-templates$", edit_templates_index),
-        (r"^/-/edit-templates/(?P<template>.*)$", edit_template),
+        (r"^/-/edit-templates/(?P<template>.+)$", edit_template),
     ]

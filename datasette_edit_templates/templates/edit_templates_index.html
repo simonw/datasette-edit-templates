@@ -11,4 +11,16 @@
 {% endfor %}
 </ul>
 
+<form action="{{ urls.path("/-/edit-templates/") }}" method="get">
+    <h2>Create a new template</h2>
+    <p><input type="text" name="template" placeholder="Name of new template"></p>
+    <p><input type="submit" value="Create"></p>
+</form>
+
+{% if recents %}
+    <h1>Recently edited</h1>
+    {% for template in recents %}
+        <p><a href="{{ urls.path("/-/edit-templates/" + template.name) }}">{{ template.name }}</a> - {{ template.created }}</p>
+    {% endfor %}
+{% endif %}
 {% endblock %}
