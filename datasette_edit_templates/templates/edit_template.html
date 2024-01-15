@@ -25,7 +25,9 @@
 
 <h1>Edit template: {{ template }}</h1>
 
-{% if not from_db %}Original disk version:{% endif %}
+{% if not from_db and not create_from_scratch %}<p>Original disk version:</p>{% endif %}
+
+{% if create_from_scratch %}<p>Create a new template</p>{% endif %}
 
 <form class="sql" action="{{ path }}" method="post">
     <p><textarea name="body">{{ body }}</textarea></p>

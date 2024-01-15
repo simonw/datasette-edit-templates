@@ -1,5 +1,5 @@
 from datasette import hookimpl
-from jinja2 import FunctionLoader
+from jinja2 import FunctionLoader, TemplateNotFound
 from datasette.utils.asgi import Response, Forbidden
 import datetime
 
@@ -138,14 +138,19 @@ async def edit_template(request, datasette):
         datasette.jinja_env.cache.clear()
         return Response.redirect(request.path)
 
-    from_db = False
+    create_from_scratch = False
     row = (await db.execute(GET_TEMPLATE_SQL, {"template": template})).first()
     if row is None:
+        from_db = False
         # Load it from disk instead
-        template_obj = datasette.jinja_env.get_template(template)
-        body = open(template_obj.filename).read()
-        from_db = True
+        try:
+            template_obj = datasette.jinja_env.get_template(template)
+            body = open(template_obj.filename).read()    
+        except TemplateNotFound:
+            body = ""
+            create_from_scratch = True
     else:
+        from_db = True
         body = row[0]
     return Response.html(
         await datasette.render_template(
@@ -155,6 +160,7 @@ async def edit_template(request, datasette):
                 "template": template,
                 "path": request.path,
                 "from_db": from_db,
+                "create_from_scratch": create_from_scratch,
             },
             request=request,
         )
