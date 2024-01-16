@@ -78,7 +78,13 @@ async def test_skip_prepare_jinja2_environment(db_path, db, skip):
 
 
 @pytest.mark.asyncio
-async def test_menu_link(ds):
+@pytest.mark.parametrize("menu_label", ("NOT_SET", None, "Custom edit templates"))
+async def test_menu_link(db_path, menu_label):
+    config = {}
+    if menu_label != "NOT_SET":
+        config["datasette-edit-templates"] = {"menu_label": menu_label}
+    ds = Datasette([db_path], metadata={"plugins": config})
+    await ds.invoke_startup()
     response = await ds.client.get("/")
     assert response.status_code == 200
     assert "Edit templates" not in response.text
@@ -86,7 +92,12 @@ async def test_menu_link(ds):
         "/", cookies={"ds_actor": ds.sign({"a": {"id": "root"}}, "actor")}
     )
     assert response.status_code == 200
-    assert "Edit templates" in response.text
+    if menu_label == "NOT_SET":
+        assert "Edit templates" in response.text
+    elif menu_label is None:
+        assert "Edit templates" not in response.text
+    else:
+        assert menu_label in response.text
 
 
 @pytest.mark.asyncio

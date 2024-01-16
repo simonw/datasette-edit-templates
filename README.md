@@ -53,6 +53,19 @@ You can disable this behavior using the `skip_prepare_jinja2_environment` plugin
 ```
 Set this option if you want to further customize how the templates are loaded using another plugin.
 
+The menu item used to access this plugin is labeled "Edit templates" by default. You can customize this using the `menu_label` plugin configuration option:
+
+```json
+{
+    "plugins": {
+        "datasette-edit-templates": {
+            "menu_label": "Custom templates"
+        }
+    }
+}
+```
+Set that to `null` to hide the menu option entirely.
+
 ## Development
 
 To set up this plugin locally, first checkout the code. Then create a new virtual environment:

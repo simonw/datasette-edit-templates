@@ -70,6 +70,14 @@ def permission_allowed(actor, action):
 
 @hookimpl
 def menu_links(datasette, actor):
+    config = datasette.plugin_config("datasette-edit-templates") or {}
+    if "menu_label" not in config:
+        menu_label = "Edit templates"
+    else:
+        menu_label = config.get("menu_label")
+    if menu_label is None:
+        return
+
     async def inner():
         if not await datasette.permission_allowed(
             actor, "edit-templates", default=False
@@ -78,7 +86,7 @@ def menu_links(datasette, actor):
         return [
             {
                 "href": datasette.urls.path("/-/edit-templates"),
-                "label": "Edit templates",
+                "label": menu_label,
             },
         ]
 
