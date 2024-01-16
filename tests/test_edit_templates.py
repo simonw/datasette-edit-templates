@@ -57,6 +57,27 @@ async def test_loads_templates_on_startup(db_path, db):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("skip", [True, False])
+async def test_skip_prepare_jinja2_environment(db_path, db, skip):
+    db["_templates_"].insert_all(TEMPLATES)
+    ds = Datasette(
+        [db_path],
+        metadata={
+            "plugins": {
+                "datasette-edit-templates": {"skip_prepare_jinja2_environment": skip}
+            }
+        },
+    )
+    await ds.invoke_startup()
+    assert ds._edit_templates == {"_footer.html": "Hello world v2"}
+    response = await ds.client.get("/")
+    if skip:
+        assert "Hello world v2" not in response.text
+    else:
+        assert "Hello world v2" in response.text
+
+
+@pytest.mark.asyncio
 async def test_menu_link(ds):
     response = await ds.client.get("/")
     assert response.status_code == 200

@@ -38,6 +38,20 @@ To put the `_templates_` table in a specific database, set the `datasette-edit-t
     }
 }
 ```
+By default the [prepare_jinja2_environment()](https://docs.datasette.io/en/stable/plugin_hooks.html#prepare-jinja2-environment-env-datasette) hook will be used to load the custom templates.
+
+You can disable this behavior using the `skip_prepare_jinja2_environment` plugin configuration option:
+
+```json
+{
+    "plugins": {
+        "datasette-edit-templates": {
+            "skip_prepare_jinja2_environment": true
+        }
+    }
+}
+```
+Set this option if you want to further customize how the templates are loaded using another plugin.
 
 ## Development
 

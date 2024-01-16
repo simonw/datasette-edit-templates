@@ -97,6 +97,10 @@ class MyFunctionLoader(FunctionLoader):
 
 @hookimpl
 def prepare_jinja2_environment(env, datasette):
+    config = datasette.plugin_config("datasette-edit-templates") or {}
+    if config.get("skip_prepare_jinja2_environment"):
+        return
+
     def load_func(path):
         try:
             code = datasette._edit_templates[path]
