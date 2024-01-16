@@ -4,6 +4,31 @@ import pytest
 import sqlite_utils
 
 
+TEMPLATES = [
+    # Duplicated these with same created just to
+    # make sure having exact same timestamp doesn't
+    # crash the server on startup
+    {
+        "id": 1,
+        "template": "_footer.html",
+        "created": "2023-01-01T00:00:00",
+        "body": "Hello world v2",
+    },
+    {
+        "id": 2,
+        "template": "_footer.html",
+        "created": "2023-01-01T00:00:00",
+        "body": "Hello world v2",
+    },
+    {
+        "id": 3,
+        "template": "_footer.html",
+        "created": "2022-01-01T00:00:00",
+        "body": "Hello world v1",
+    },
+]
+
+
 @pytest.fixture
 def db_path(tmpdir):
     db_path = str(tmpdir / "test.db")
@@ -25,28 +50,7 @@ async def ds(db_path):
 
 @pytest.mark.asyncio
 async def test_loads_templates_on_startup(db_path, db):
-    db["_templates_"].insert_all(
-        [
-            # Duplicated these with same created just to
-            # make sure having exact same timestamp doesn't
-            # crash the server on startup
-            {
-                "template": "_footer.html",
-                "created": "2023-01-01T00:00:00",
-                "body": "Hello world v2",
-            },
-            {
-                "template": "_footer.html",
-                "created": "2023-01-01T00:00:00",
-                "body": "Hello world v2",
-            },
-            {
-                "template": "_footer.html",
-                "created": "2022-01-01T00:00:00",
-                "body": "Hello world v1",
-            },
-        ]
-    )
+    db["_templates_"].insert_all(TEMPLATES)
     ds = Datasette([db_path])
     await ds.invoke_startup()
     assert ds._edit_templates == {"_footer.html": "Hello world v2"}
@@ -122,3 +126,25 @@ async def test_edit_template_permission_denied(ds):
         response = await ds.client.get(path)
         assert response.status_code == 403
         assert "Permission denied" in response.text
+
+
+@pytest.mark.asyncio
+async def test_view_revisions(db_path, db):
+    db["_templates_"].insert_all(TEMPLATES)
+    ds = Datasette([db_path])
+    await ds.invoke_startup()
+    ds_actor = ds.sign({"a": {"id": "root"}}, "actor")
+    response = await ds.client.get(
+        "/-/edit-templates/_footer.html", cookies={"ds_actor": ds_actor}
+    )
+    for fragment in (
+        '<a href="/-/edit-templates/_footer.html?revision=2">2023-01-01 00:00:00</a>',
+        '<a href="/-/edit-templates/_footer.html?revision=3">2022-01-01 00:00:00</a>',
+    ):
+        assert fragment in response.text
+    response2 = await ds.client.get(
+        "/-/edit-templates/_footer.html?revision=3", cookies={"ds_actor": ds_actor}
+    )
+    assert response2.status_code == 200
+    assert "Hello world v1" in response2.text
+    assert "readOnly" in response2.text
