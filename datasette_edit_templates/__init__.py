@@ -43,6 +43,11 @@ def pretty_datetime(d):
         return ""
 
 
+def get_environment(datasette, request):
+    if hasattr(datasette, "get_jinja_environment"):
+        return datasette.get_jinja_environment(request)
+    return datasette.jinja_env
+
 @hookimpl
 def startup(datasette):
     datasette._edit_templates = {}
@@ -147,7 +152,9 @@ async def edit_templates_index(request, datasette):
     ]
     by_name = {t["name"]: t for t in templates}
 
-    for template in datasette.jinja_env.list_templates():
+    environment = get_environment(datasette, request)
+
+    for template in environment.list_templates():
         if template.startswith("default:"):
             continue
         if template in by_name:
@@ -196,7 +203,7 @@ async def edit_template(request, datasette):
         # Update the in-memory cache too
         datasette._edit_templates[template] = body
         # Clear the Jinja template cache so it sees the change
-        datasette.jinja_env.cache.clear()
+        get_environment(datasette, request).cache.clear()
         return Response.redirect(request.path)
 
     create_from_scratch = False
@@ -216,7 +223,8 @@ async def edit_template(request, datasette):
         from_db = False
         # Load it from disk instead
         try:
-            template_obj = datasette.jinja_env.get_template(template)
+            environment = get_environment(datasette, request)
+            template_obj = environment.get_template(template)
             body = open(template_obj.filename).read()
         except TemplateNotFound:
             body = ""
