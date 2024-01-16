@@ -35,7 +35,9 @@ setup(
             "templates/*.html",
         ],
     },
-    extras_require={"test": ["pytest", "pytest-asyncio", "sqlite-utils"]},
+    extras_require={
+        "test": ["pytest", "pytest-asyncio", "sqlite-utils", "datasette-test"]
+    },
     tests_require=["datasette-edit-templates[test]"],
     python_requires=">=3.7",
 )

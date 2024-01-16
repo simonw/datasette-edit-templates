@@ -48,6 +48,7 @@ def get_environment(datasette, request):
         return datasette.get_jinja_environment(request)
     return datasette.jinja_env
 
+
 @hookimpl
 def startup(datasette):
     datasette._edit_templates = {}

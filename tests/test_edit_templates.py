@@ -1,4 +1,4 @@
-from datasette.app import Datasette
+from datasette_test import Datasette
 import datasette.version
 import pytest_asyncio
 import pytest
