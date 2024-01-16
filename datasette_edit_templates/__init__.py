@@ -95,6 +95,8 @@ def menu_links(datasette, actor):
 
 def get_database(datasette):
     plugin_config = datasette.plugin_config("datasette-edit-templates") or {}
+    if plugin_config.get("internal_db"):
+        return datasette.get_internal_database()
     return datasette.get_database(plugin_config.get("database"))
 
 

@@ -33,11 +33,23 @@ To put the `_templates_` table in a specific database, set the `datasette-edit-t
 {
     "plugins": {
         "datasette-edit-templates": {
-            "database": "_internal"
+            "database": "some_database"
         }
     }
 }
 ```
+On Datasette [1.0a5](https://docs.datasette.io/en/latest/changelog.html#a5-2023-08-29) or higher you can use the [internal database](https://docs.datasette.io/en/latest/internals.html#internals-internal) with `"internal_db: true":`
+
+```json
+{
+    "plugins": {
+        "datasette-edit-templates": {
+            "internal_db": true
+        }
+    }
+}
+```
+
 By default the [prepare_jinja2_environment()](https://docs.datasette.io/en/stable/plugin_hooks.html#prepare-jinja2-environment-env-datasette) hook will be used to load the custom templates.
 
 You can disable this behavior using the `skip_prepare_jinja2_environment` plugin configuration option:

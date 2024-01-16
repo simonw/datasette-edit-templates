@@ -1,4 +1,5 @@
 from datasette.app import Datasette
+import datasette.version
 import pytest_asyncio
 import pytest
 import sqlite_utils
@@ -180,3 +181,28 @@ async def test_view_revisions(db_path, db):
     assert response2.status_code == 200
     assert "Hello world v1" in response2.text
     assert "readOnly" in response2.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    datasette.version.__version_info__ < ("1", "0a5"),
+    reason="Requires Datasette 1.0a5 or higher",
+)
+@pytest.mark.parametrize("internal_db", (True, False))
+async def test_internal_db(internal_db):
+    ds = Datasette(
+        [],
+        memory=True,
+        metadata={
+            "plugins": {"datasette-edit-templates": {"internal_db": internal_db}}
+        },
+    )
+    db = ds.get_internal_database()
+    await db.execute_write_fn(
+        lambda conn: sqlite_utils.Database(conn)["_templates_"].insert_all(TEMPLATES)
+    )
+    await ds.invoke_startup()
+    if internal_db:
+        assert ds._edit_templates == {"_footer.html": "Hello world v2"}
+    else:
+        assert ds._edit_templates == {}
