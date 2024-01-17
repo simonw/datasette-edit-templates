@@ -44,5 +44,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install setuptools wheel build
+    - name: Build
+      run: |
+        python -m build
     - name: Publish
       uses: pypa/gh-action-pypi-publish@release/v1
