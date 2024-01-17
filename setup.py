@@ -32,6 +32,7 @@ setup(
     package_data={
         "datasette_edit_templates": [
             "static/*.js",
+            "static/*.css",
             "templates/*.html",
         ],
     },
