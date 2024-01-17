@@ -36,8 +36,14 @@ setup(
         ],
     },
     extras_require={
-        "test": ["pytest", "pytest-asyncio", "sqlite-utils", "datasette-test"]
+        "test": [
+            "pytest",
+            "pytest-asyncio",
+            "sqlite-utils",
+            "datasette-test>=0.2",
+            "nest-asyncio",
+        ],
+        "playwright": ["pytest-playwright"],
     },
-    tests_require=["datasette-edit-templates[test]"],
-    python_requires=">=3.7",
+    python_requires=">=3.8",
 )
