@@ -24,6 +24,7 @@ def ds_server(tmp_path_factory):
             "--port",
             "8126",
             str(db_path),
+            "--root",
             "--secret",
             "1",
         ],
