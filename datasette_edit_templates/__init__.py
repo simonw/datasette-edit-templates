@@ -1,4 +1,5 @@
 from datasette import hookimpl
+from datasette.permissions import Action
 from jinja2 import FunctionLoader, TemplateNotFound
 from datasette.utils.asgi import Response, Forbidden
 import datetime
@@ -69,9 +70,13 @@ def startup(datasette):
 
 
 @hookimpl
-def permission_allowed(actor, action):
-    if action == "edit-templates" and actor and actor.get("id") == "root":
-        return True
+def register_actions():
+    return (
+        Action(
+            name="edit-templates",
+            description="Edit Datasette templates",
+        ),
+    )
 
 
 @hookimpl
@@ -85,9 +90,7 @@ def menu_links(datasette, actor):
         return
 
     async def inner():
-        if not await datasette.permission_allowed(
-            actor, "edit-templates", default=False
-        ):
+        if not await datasette.allowed(action="edit-templates", actor=actor):
             return
         return [
             {
@@ -128,8 +131,9 @@ def prepare_jinja2_environment(env, datasette):
 
 
 async def edit_templates_index(request, datasette):
-    if not await datasette.permission_allowed(
-        request.actor, "edit-templates", default=False
+    if not await datasette.allowed(
+        action="edit-templates",
+        actor=request.actor,
     ):
         raise Forbidden("Permission denied for edit-templates")
     template_name = request.args.get("template")
@@ -182,8 +186,9 @@ async def edit_templates_index(request, datasette):
 
 
 async def edit_template(request, datasette):
-    if not await datasette.permission_allowed(
-        request.actor, "edit-templates", default=False
+    if not await datasette.allowed(
+        action="edit-templates",
+        actor=request.actor,
     ):
         raise Forbidden("Permission denied for edit-templates")
     template = request.url_vars["template"]

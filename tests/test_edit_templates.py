@@ -45,6 +45,7 @@ def db(db_path):
 @pytest_asyncio.fixture
 async def ds(db_path):
     ds = Datasette([db_path])
+    ds.root_enabled = True
     await ds.invoke_startup()
     return ds
 
@@ -63,7 +64,7 @@ async def test_skip_prepare_jinja2_environment(db_path, db, skip):
     db["_templates_"].insert_all(TEMPLATES)
     ds = Datasette(
         [db_path],
-        metadata={
+        config={
             "plugins": {
                 "datasette-edit-templates": {"skip_prepare_jinja2_environment": skip}
             }
@@ -81,10 +82,11 @@ async def test_skip_prepare_jinja2_environment(db_path, db, skip):
 @pytest.mark.asyncio
 @pytest.mark.parametrize("menu_label", ("NOT_SET", None, "Custom edit templates"))
 async def test_menu_link(db_path, menu_label):
-    config = {}
+    plugin_config = {}
     if menu_label != "NOT_SET":
-        config["datasette-edit-templates"] = {"menu_label": menu_label}
-    ds = Datasette([db_path], metadata={"plugins": config})
+        plugin_config["datasette-edit-templates"] = {"menu_label": menu_label}
+    ds = Datasette([db_path], config={"plugins": plugin_config})
+    ds.root_enabled = True
     await ds.invoke_startup()
     response = await ds.client.get("/")
     assert response.status_code == 200
@@ -165,6 +167,7 @@ async def test_edit_template_permission_denied(ds):
 async def test_view_revisions(db_path, db):
     db["_templates_"].insert_all(TEMPLATES)
     ds = Datasette([db_path])
+    ds.root_enabled = True
     await ds.invoke_startup()
     ds_actor = ds.sign({"a": {"id": "root"}}, "actor")
     response = await ds.client.get(
@@ -193,9 +196,7 @@ async def test_internal_db(internal_db):
     ds = Datasette(
         [],
         memory=True,
-        metadata={
-            "plugins": {"datasette-edit-templates": {"internal_db": internal_db}}
-        },
+        config={"plugins": {"datasette-edit-templates": {"internal_db": internal_db}}},
     )
     db = ds.get_internal_database()
     await db.execute_write_fn(

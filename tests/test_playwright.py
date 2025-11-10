@@ -45,7 +45,7 @@ def test_edit_template_page(ds_server, page, logged_in):
     page.on("response", handle_response)
 
     page.goto(ds_server + "/-/edit-templates/_footer.html")
-    
+
     response = responses[0]
 
     if not logged_in:
