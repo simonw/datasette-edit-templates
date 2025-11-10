@@ -28,7 +28,7 @@ setup(
     version=VERSION,
     packages=["datasette_edit_templates"],
     entry_points={"datasette": ["edit_templates = datasette_edit_templates"]},
-    install_requires=["datasette>=0.63"],
+    install_requires=["datasette>=1.0a21"],
     package_data={
         "datasette_edit_templates": [
             "static/*.js",
