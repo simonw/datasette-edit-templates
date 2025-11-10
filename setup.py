@@ -42,7 +42,6 @@ setup(
             "pytest-asyncio",
             "sqlite-utils",
             "datasette-test>=0.2",
-            "nest-asyncio",
         ],
         "playwright": ["pytest-playwright"],
     },
